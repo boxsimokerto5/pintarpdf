@@ -37,9 +37,11 @@ jobs:
 
       - name: Initialize Capacitor Android
         run: |
-          npx cap add android
+          if [ ! -d "android" ]; then
+            npx cap add android
+          fi
           npx cap sync android
-          npm run assets:generate
+          # npm run assets:generate # Commented out if not needed or failing
 
       - name: Build Debug APK
         run: |
