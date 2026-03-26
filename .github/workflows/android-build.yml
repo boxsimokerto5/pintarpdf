@@ -85,12 +85,12 @@ jobs:
       - name: Sign APK & AAB
         run: |
           # Sign APK
-          apksigner sign --ks android/app/release.keystore \
-            --ks-pass pass:$STORE_PASS \
-            --ks-key-alias $ALIAS \
-            --key-pass pass:$KEY_PASS \
-            --out android/app/build/outputs/apk/release/app-release-signed.apk \
-            android/app/build/outputs/apk/release/app-release-unsigned.apk
+          jarsigner -keystore android/app/release.keystore \
+            -storepass $STORE_PASS \
+            -keypass $KEY_PASS \
+            -signedjar android/app/build/outputs/apk/release/app-release-signed.apk \
+            android/app/build/outputs/apk/release/app-release-unsigned.apk \
+            $ALIAS
           
           # Sign AAB
           jarsigner -keystore android/app/release.keystore \
