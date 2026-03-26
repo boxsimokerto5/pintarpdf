@@ -49,7 +49,7 @@ jobs:
             npx cap add android
           fi
           npx cap sync android
-          # npm run assets:generate # Commented out if not needed or failing
+          npm run assets:generate
 
       - name: Build Debug APK
         run: |
