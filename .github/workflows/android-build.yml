@@ -39,6 +39,7 @@ jobs:
         run: |
           npx cap add android
           npx cap sync android
+          npm run assets:generate
 
       - name: Build Debug APK
         run: |
@@ -46,10 +47,54 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug
 
-      - name: Build Release APK (Unsigned)
+      - name: Build Release APK & AAB
         run: |
           cd android
           ./gradlew assembleRelease
+          ./gradlew bundleRelease
+
+      - name: Prepare Signing Key
+        id: prepare_key
+        run: |
+          if [ -z "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" ]; then
+            echo "No keystore found in secrets. Generating a new one..."
+            keytool -genkey -v -keystore android/app/release.keystore -alias pintar-pdf -keyalg RSA -keysize 2048 -validity 10000 -storepass "pintarpdf123" -keypass "pintarpdf123" -dname "CN=PintarPDF, OU=App, O=PintarPDF, L=Jakarta, S=Jakarta, C=ID"
+            echo "generated=true" >> $GITHUB_OUTPUT
+            echo "STORE_PASS=pintarpdf123" >> $GITHUB_ENV
+            echo "KEY_PASS=pintarpdf123" >> $GITHUB_ENV
+            echo "ALIAS=pintar-pdf" >> $GITHUB_ENV
+          else
+            echo "Keystore found in secrets. Decoding..."
+            echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/release.keystore
+            echo "generated=false" >> $GITHUB_OUTPUT
+            echo "STORE_PASS=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" >> $GITHUB_ENV
+            echo "KEY_PASS=${{ secrets.ANDROID_KEY_PASSWORD }}" >> $GITHUB_ENV
+            echo "ALIAS=${{ secrets.ANDROID_KEY_ALIAS }}" >> $GITHUB_ENV
+          fi
+
+      - name: Sign APK & AAB
+        run: |
+          # Sign APK
+          apksigner sign --ks android/app/release.keystore \
+            --ks-pass pass:$STORE_PASS \
+            --ks-key-alias $ALIAS \
+            --key-pass pass:$KEY_PASS \
+            --out android/app/build/outputs/apk/release/app-release-signed.apk \
+            android/app/build/outputs/apk/release/app-release-unsigned.apk
+          
+          # Sign AAB
+          jarsigner -keystore android/app/release.keystore \
+            -storepass $STORE_PASS \
+            -keypass $KEY_PASS \
+            android/app/build/outputs/bundle/release/app-release.aab \
+            $ALIAS
+
+      - name: Upload Generated Keystore (SAVE THIS!)
+        if: steps.prepare_key.outputs.generated == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: PintarPDF-SIGNING-KEY-DO-NOT-DELETE
+          path: android/app/release.keystore
 
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
@@ -57,8 +102,14 @@ jobs:
           name: PintarPDF-Debug
           path: android/app/build/outputs/apk/debug/app-debug.apk
 
-      - name: Upload Release APK (Unsigned)
+      - name: Upload Release Signed APK
         uses: actions/upload-artifact@v4
         with:
-          name: PintarPDF-Release-Unsigned
-          path: android/app/build/outputs/apk/release/app-release-unsigned.apk
+          name: PintarPDF-Release-Signed
+          path: android/app/build/outputs/apk/release/app-release-signed.apk
+
+      - name: Upload Release AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: PintarPDF-Release-AAB
+          path: android/app/build/outputs/bundle/release/app-release.aab

@@ -1,6 +1,9 @@
 import { useState, useEffect, ReactNode, ChangeEvent, useRef } from "react";
 import { jsPDF } from "jspdf";
 import * as pdfjsLib from 'pdfjs-dist';
+import { Capacitor } from '@capacitor/core';
+import { Filesystem, Directory } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
 
 // @ts-ignore
 import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.mjs?url';
@@ -15,6 +18,18 @@ const hexToRgb = (hex: string) => {
 
 // Set PDF.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
+
+const blobToBase64 = (blob: Blob): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result as string;
+      resolve(base64String.split(',')[1]);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+};
 
 import { 
   Menu, 
@@ -536,12 +551,9 @@ export default function App() {
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center overflow-hidden shadow-lg">
                   <img 
-                    src="/logo.png" 
+                    src="/logo.svg" 
                     alt="Logo" 
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = "https://picsum.photos/seed/pdf/100/100";
-                    }}
+                    className="w-full h-full object-contain p-1"
                   />
                 </div>
                 <span className="text-xl font-bold tracking-tight">PintarPDF</span>
@@ -661,7 +673,10 @@ export default function App() {
           <button onClick={toggleSidebar} className="p-2 hover:bg-white/10 rounded-xl transition-colors">
             <Menu className="w-6 h-6" />
           </button>
-          <h1 className="text-xl font-bold tracking-tight">PintarPDF</h1>
+          <div className="flex items-center gap-2">
+            <img src="/logo.svg" alt="Logo" className="w-8 h-8 object-contain bg-white rounded-lg p-1 shadow-sm" />
+            <h1 className="text-xl font-bold tracking-tight">PintarPDF</h1>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <button 
@@ -1849,11 +1864,8 @@ function ToolView({ tool, onBack, isDarkMode, onComplete }: { tool: PDFTool, onB
                     </div>
                   </div>
                   <button 
-                    onClick={() => {
+                    onClick={async () => {
                       if (!resultBlob) return;
-                      const url = window.URL.createObjectURL(resultBlob);
-                      const a = document.createElement("a");
-                      a.href = url;
                       
                       // Determine extension based on tool
                       let ext = "pdf";
@@ -1863,9 +1875,35 @@ function ToolView({ tool, onBack, isDarkMode, onComplete }: { tool: PDFTool, onB
                       else if (tool.id === "pdf-ke-word") ext = "doc";
                       else if (tool.id === "pdf-ke-excel") ext = "xls";
                       
-                      a.download = `PintarPDF_${files[0]?.name.split('.')[0] || "dokumen"}.${ext}`;
-                      a.click();
-                      window.URL.revokeObjectURL(url);
+                      const fileName = `PintarPDF_${files[0]?.name.split('.')[0] || "dokumen"}.${ext}`;
+
+                      if (Capacitor.isNativePlatform()) {
+                        try {
+                          const base64Data = await blobToBase64(resultBlob);
+                          const savedFile = await Filesystem.writeFile({
+                            path: fileName,
+                            data: base64Data,
+                            directory: Directory.Cache,
+                          });
+                          
+                          await Share.share({
+                            title: 'Simpan File',
+                            text: 'PintarPDF - Hasil Proses',
+                            url: savedFile.uri,
+                            dialogTitle: 'Simpan atau Bagikan File',
+                          });
+                        } catch (error) {
+                          console.error('Error sharing file:', error);
+                          alert('Gagal menyimpan file.');
+                        }
+                      } else {
+                        const url = window.URL.createObjectURL(resultBlob);
+                        const a = document.createElement("a");
+                        a.href = url;
+                        a.download = fileName;
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                      }
                     }}
                     className="p-3 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 transition-colors shadow-lg"
                   >
@@ -1895,12 +1933,35 @@ function ToolView({ tool, onBack, isDarkMode, onComplete }: { tool: PDFTool, onB
               <div className="flex gap-4 w-full">
                 {tool.id === "cetak-pdf" && (
                   <button 
-                    onClick={() => {
-                      if (!resultUrl) return;
-                      // Using window.open is more reliable for PDFs in iframes to avoid cross-origin print errors
-                      const printWindow = window.open(resultUrl, "_blank");
-                      if (!printWindow) {
-                        alert("Silakan izinkan pop-up untuk mencetak dokumen.");
+                    onClick={async () => {
+                      if (!resultUrl || !resultBlob) return;
+                      
+                      if (Capacitor.isNativePlatform()) {
+                        try {
+                          const fileName = `PintarPDF_Cetak_${files[0]?.name.split('.')[0] || "dokumen"}.pdf`;
+                          const base64Data = await blobToBase64(resultBlob);
+                          const savedFile = await Filesystem.writeFile({
+                            path: fileName,
+                            data: base64Data,
+                            directory: Directory.Cache,
+                          });
+                          
+                          await Share.share({
+                            title: 'Cetak Dokumen',
+                            text: 'PintarPDF - Siap Cetak',
+                            url: savedFile.uri,
+                            dialogTitle: 'Pilih Printer atau Simpan',
+                          });
+                        } catch (error) {
+                          console.error('Error sharing for print:', error);
+                          alert('Gagal memproses dokumen untuk cetak.');
+                        }
+                      } else {
+                        // Using window.open is more reliable for PDFs in iframes to avoid cross-origin print errors
+                        const printWindow = window.open(resultUrl, "_blank");
+                        if (!printWindow) {
+                          alert("Silakan izinkan pop-up untuk mencetak dokumen.");
+                        }
                       }
                     }}
                     className="flex-1 py-4 bg-green-600 text-white rounded-2xl font-bold hover:bg-green-700 transition-colors shadow-lg flex items-center justify-center gap-2"

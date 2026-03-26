@@ -1,5 +1,5 @@
 {
   "name": "PintarPDF",
   "description": "Solusi cerdas untuk semua kebutuhan dokumen PDF Anda. Konversi, edit, optimasi, dan atur PDF dengan mudah.",
-  "requestFramePermissions": []
+  "requestFramePermissions": ["camera", "geolocation"]
 }

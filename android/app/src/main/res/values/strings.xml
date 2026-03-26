@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">PintarPDF</string>
+    <string name="title_activity_main">PintarPDF</string>
+    <string name="package_name">com.pintarpdf.app</string>
+    <string name="custom_url_scheme">com.pintarpdf.app</string>
+</resources>

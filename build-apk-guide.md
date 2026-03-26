@@ -1,32 +1,25 @@
-# Panduan Build APK PintarPDF via GitHub Actions
+# Panduan Build APK PintarPDF (Versi HP)
 
-Proyek ini telah dikonfigurasi untuk membangun (build) file APK secara otomatis menggunakan GitHub Actions.
+Karena Anda menggunakan HP, sistem build telah dikonfigurasi untuk bekerja secara otomatis menggunakan **GitHub Actions**.
 
-## Persiapan di GitHub
+## Cara Mendapatkan APK Signed
+1. Lakukan **Push** atau simpan perubahan kode ini ke GitHub.
+2. Buka tab **Actions** di halaman GitHub repositori Anda.
+3. Pilih alur kerja (workflow) yang sedang berjalan (biasanya bernama "Android Build").
+4. Tunggu sekitar 5-10 menit sampai selesai (muncul centang hijau).
+5. Scroll ke bawah ke bagian **Artifacts**.
 
-Agar build berjalan lancar, Anda perlu melakukan beberapa langkah di repositori GitHub Anda:
+## File yang Akan Anda Dapatkan
+1. **PintarPDF-Release-Signed**: Download ini untuk mendapatkan file APK yang bisa diinstal di HP Android.
+2. **PintarPDF-SIGNING-KEY-DO-NOT-DELETE**: **SANGAT PENTING!** Download file `.keystore` ini dan simpan di Google Drive atau Email. File ini adalah "Kunci" aplikasi Anda. Jika hilang, Anda tidak akan bisa mengupdate aplikasi di masa depan.
 
-1.  **Push Kode ke GitHub**: Pastikan semua file (termasuk folder `.github`) sudah di-push ke cabang `main` atau `master`.
-2.  **Jalankan Workflow**:
-    *   Buka tab **Actions** di GitHub.
-    *   Pilih workflow **Build Android APK**.
-    *   Klik **Run workflow** (jika ingin menjalankan manual) atau push kode baru untuk memicu build otomatis.
+## Informasi Kunci (Catat!)
+Jika suatu saat Anda ingin build manual atau pindah ke komputer, gunakan data ini:
+- **Keystore Password**: `pintarpdf123`
+- **Key Alias**: `pintar-pdf`
+- **Key Password**: `pintarpdf123`
 
-## Hasil Build (Artifacts)
-
-Setelah proses selesai (sekitar 5-10 menit), Anda dapat mengunduh file APK di bagian **Artifacts** pada halaman detail build:
-*   **PintarPDF-Debug**: APK versi debug (bisa langsung diinstal di HP untuk testing).
-*   **PintarPDF-Release-Unsigned**: APK versi release tapi belum ditandatangani (perlu ditandatangani sebelum bisa diupload ke Play Store).
-
-## Catatan Penting
-
-*   **Keystore**: Workflow saat ini menghasilkan APK *unsigned* untuk versi release. Jika Anda ingin APK yang siap rilis (signed), Anda perlu menambahkan `ANDROID_KEYSTORE` di GitHub Secrets dan memperbarui file workflow.
-*   **Versi Node & Java**: Workflow menggunakan Node.js 20 dan Java JDK 17 untuk kompatibilitas terbaik dengan Capacitor terbaru.
-
-## Perintah Lokal
-
-Jika Anda ingin mencoba build di komputer lokal:
-```bash
-npm run android:build
-```
-*Pastikan Anda sudah menginstal Android Studio dan SDK yang diperlukan.*
+## Fitur yang Sudah Aktif
+- **Izin**: Internet, Kamera, Lokasi, dan Penyimpanan (Baca/Tulis File).
+- **Ikon**: Logo PintarPDF baru sudah otomatis terpasang sebagai ikon aplikasi dan splash screen.
+- **Optimasi**: Kode sudah diperkecil (minified) agar aplikasi ringan.
